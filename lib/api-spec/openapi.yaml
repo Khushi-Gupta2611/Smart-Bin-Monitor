@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Smart Garbage Management and Environmental Safety System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: reports
+    description: Garbage report operations
+  - name: stats
+    description: Analytics and statistics
+  - name: leaderboard
+    description: Eco-points leaderboard
+  - name: donations
+    description: Donation operations
+  - name: volunteers
+    description: Volunteer and NGO operations
 paths:
   /healthz:
     get:
@@ -24,6 +34,227 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List all garbage reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, accepted, under_work, completed]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [garbage, illegal_dumping, water_pollution, burning_waste, toxic_waste]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Submit a new garbage report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "400":
+          description: Invalid input
+
+  /reports/recent:
+    get:
+      operationId: listRecentReports
+      tags: [reports]
+      summary: Get recent activity feed (last 10 reports)
+      responses:
+        "200":
+          description: Recent reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a single report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          description: Report not found
+
+  /reports/{id}/status:
+    patch:
+      operationId: updateReportStatus
+      tags: [reports]
+      summary: Update the status of a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportStatusUpdate"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          description: Report not found
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /stats/areas:
+    get:
+      operationId: getAreaStats
+      tags: [stats]
+      summary: Most polluted areas by report count
+      responses:
+        "200":
+          description: Area statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AreaStat"
+
+  /stats/categories:
+    get:
+      operationId: getCategoryStats
+      tags: [stats]
+      summary: Report counts broken down by category
+      responses:
+        "200":
+          description: Category statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryStat"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get top eco-point earners
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /donations:
+    get:
+      operationId: listDonations
+      tags: [donations]
+      summary: List all donations
+      responses:
+        "200":
+          description: List of donations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donation"
+    post:
+      operationId: createDonation
+      tags: [donations]
+      summary: Make a donation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonationInput"
+      responses:
+        "201":
+          description: Donation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donation"
+        "400":
+          description: Invalid input
+
+  /volunteers:
+    get:
+      operationId: listVolunteers
+      tags: [volunteers]
+      summary: List volunteers and NGOs
+      responses:
+        "200":
+          description: Volunteer list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Volunteer"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +265,262 @@ components:
       required:
         - status
 
+    Report:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - category
+        - status
+        - severity
+        - location
+        - reporterName
+        - ecoPointsAwarded
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [garbage, illegal_dumping, water_pollution, burning_waste, toxic_waste]
+        status:
+          type: string
+          enum: [pending, accepted, under_work, completed]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        location:
+          type: string
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        completionImageUrl:
+          type: ["string", "null"]
+        reporterName:
+          type: string
+        assignedTo:
+          type: ["string", "null"]
+        ecoPointsAwarded:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ReportInput:
+      type: object
+      required:
+        - title
+        - description
+        - category
+        - severity
+        - location
+        - reporterName
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum: [garbage, illegal_dumping, water_pollution, burning_waste, toxic_waste]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        location:
+          type: string
+          minLength: 1
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: string
+        reporterName:
+          type: string
+          minLength: 1
+
+    ReportStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, accepted, under_work, completed]
+        assignedTo:
+          type: string
+        completionImageUrl:
+          type: string
+
+    StatsSummary:
+      type: object
+      required:
+        - totalReports
+        - pendingReports
+        - acceptedReports
+        - underWorkReports
+        - completedReports
+        - totalDonations
+        - totalVolunteers
+        - totalEcoPoints
+        - avgResolutionHours
+      properties:
+        totalReports:
+          type: integer
+        pendingReports:
+          type: integer
+        acceptedReports:
+          type: integer
+        underWorkReports:
+          type: integer
+        completedReports:
+          type: integer
+        totalDonations:
+          type: number
+        totalVolunteers:
+          type: integer
+        totalEcoPoints:
+          type: integer
+        avgResolutionHours:
+          type: number
+
+    AreaStat:
+      type: object
+      required:
+        - location
+        - reportCount
+        - pendingCount
+        - completedCount
+      properties:
+        location:
+          type: string
+        reportCount:
+          type: integer
+        pendingCount:
+          type: integer
+        completedCount:
+          type: integer
+
+    CategoryStat:
+      type: object
+      required:
+        - category
+        - count
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+
+    LeaderboardEntry:
+      type: object
+      required:
+        - id
+        - name
+        - role
+        - ecoPoints
+        - reportsCount
+        - badges
+        - rank
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+          enum: [citizen, cleaning_staff, volunteer, admin]
+        ecoPoints:
+          type: integer
+        reportsCount:
+          type: integer
+        badges:
+          type: array
+          items:
+            type: string
+        rank:
+          type: integer
+
+    Donation:
+      type: object
+      required:
+        - id
+        - donorName
+        - type
+        - amount
+        - message
+        - createdAt
+      properties:
+        id:
+          type: integer
+        donorName:
+          type: string
+        type:
+          type: string
+          enum: [money, materials, sponsorship]
+        amount:
+          type: number
+        message:
+          type: string
+        createdAt:
+          type: string
+
+    DonationInput:
+      type: object
+      required:
+        - donorName
+        - type
+        - amount
+      properties:
+        donorName:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [money, materials, sponsorship]
+        amount:
+          type: number
+          minimum: 1
+        message:
+          type: string
+
+    Volunteer:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - location
+        - tasksCompleted
+        - ecoPoints
+        - joinedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [individual, ngo]
+        location:
+          type: string
+        tasksCompleted:
+          type: integer
+        ecoPoints:
+          type: integer
+        specialization:
+          type: ["string", "null"]
+        joinedAt:
+          type: string
