@@ -1,14 +1,73 @@
-import { useListVolunteers, getListVolunteersQueryKey } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState } from "react";
+import { useListVolunteers, useCreateVolunteer, getListVolunteersQueryKey } from "@workspace/api-client-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, MapPin, CheckCircle, Leaf, Star, Building2, User } from "lucide-react";
+import { Users, MapPin, CheckCircle, Leaf, Star, Building2, User, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+
+const joinSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  type: z.enum(["individual", "ngo"]),
+  location: z.string().min(3, "Location must be at least 3 characters"),
+  specialization: z.string().optional(),
+});
+
+type JoinFormValues = z.infer<typeof joinSchema>;
 
 export default function Volunteers() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: volunteers, isLoading } = useListVolunteers({
     query: { queryKey: getListVolunteersQueryKey() }
   });
+
+  const createVolunteer = useCreateVolunteer();
+
+  const form = useForm<JoinFormValues>({
+    resolver: zodResolver(joinSchema),
+    defaultValues: {
+      name: "",
+      type: "individual",
+      location: "",
+      specialization: "",
+    },
+  });
+
+  function onSubmit(values: JoinFormValues) {
+    createVolunteer.mutate(
+      { data: { ...values, specialization: values.specialization || undefined } },
+      {
+        onSuccess: (newVolunteer) => {
+          toast({
+            title: "Welcome to the team!",
+            description: `${newVolunteer.name} has been registered as a volunteer.`,
+          });
+          form.reset();
+          setDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: getListVolunteersQueryKey() });
+        },
+        onError: () => {
+          toast({
+            title: "Registration failed",
+            description: "Please try again later.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8 max-w-7xl mx-auto min-h-[100dvh]">
@@ -17,7 +76,10 @@ export default function Volunteers() {
           <h1 className="text-3xl font-bold font-display text-foreground tracking-tight">Volunteers & NGOs</h1>
           <p className="text-muted-foreground mt-1">The dedicated people and organizations keeping our city clean.</p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md">
+        <Button
+          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+          onClick={() => setDialogOpen(true)}
+        >
           <Users className="w-4 h-4 mr-2" /> Join as Volunteer
         </Button>
       </div>
@@ -40,8 +102,8 @@ export default function Volunteers() {
           ))
         ) : volunteers && volunteers.length > 0 ? (
           volunteers.map((volunteer) => (
-            <Card 
-              key={volunteer.id} 
+            <Card
+              key={volunteer.id}
               className="border-border bg-card shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col group relative"
             >
               <div className={`h-1.5 w-full ${volunteer.type === 'ngo' ? 'bg-secondary' : 'bg-primary'}`} />
@@ -51,13 +113,13 @@ export default function Volunteers() {
                     {volunteer.type}
                   </Badge>
                 </div>
-                
+
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${volunteer.type === 'ngo' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
                   {volunteer.type === 'ngo' ? <Building2 className="w-7 h-7" /> : <User className="w-7 h-7" />}
                 </div>
 
                 <h3 className="font-bold font-display text-xl text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-1">{volunteer.name}</h3>
-                
+
                 <div className="flex items-center text-sm text-muted-foreground mb-4 gap-1">
                   <MapPin className="w-3.5 h-3.5" />
                   <span className="truncate">{volunteer.location}</span>
@@ -90,11 +152,108 @@ export default function Volunteers() {
         ) : (
           <div className="col-span-full py-16 text-center border border-dashed rounded-xl bg-muted/20">
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-            <h3 className="text-lg font-medium text-foreground mb-1">No volunteers found</h3>
-            <p className="text-muted-foreground text-sm">Become the first volunteer in your area.</p>
+            <h3 className="text-lg font-medium text-foreground mb-1">No volunteers yet</h3>
+            <p className="text-muted-foreground text-sm">Be the first to join and make a difference.</p>
           </div>
         )}
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-display flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" /> Join as Volunteer
+            </DialogTitle>
+            <DialogDescription>
+              Register yourself or your organization to help with cleanup drives and earn Eco-Points.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 mt-2">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name / Organization Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual Volunteer</SelectItem>
+                        <SelectItem value="ngo">NGO / Organization</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location / Area</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Downtown, River District..." className="pl-10 bg-background" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="specialization"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Specialization <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
+                    <FormControl>
+                      <Input placeholder="Recycling, Water cleanup, Hazmat..." {...field} className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={createVolunteer.isPending}>
+                  {createVolunteer.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Registering...</>
+                  ) : (
+                    "Join Now"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

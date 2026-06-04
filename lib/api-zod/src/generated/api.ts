@@ -251,3 +251,20 @@ export const ListVolunteersResponseItem = zod.object({
 export const ListVolunteersResponse = zod.array(ListVolunteersResponseItem)
 
 
+/**
+ * @summary Register as a volunteer or NGO
+ */
+export const createVolunteerBodyNameMin = 2;
+
+export const createVolunteerBodyLocationMin = 3;
+
+
+
+export const CreateVolunteerBody = zod.object({
+  "name": zod.string().min(createVolunteerBodyNameMin),
+  "type": zod.enum(['individual', 'ngo']),
+  "location": zod.string().min(createVolunteerBodyLocationMin),
+  "specialization": zod.string().optional()
+})
+
+

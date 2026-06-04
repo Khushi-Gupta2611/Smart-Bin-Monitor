@@ -30,4 +30,6 @@ export * from './reportStatusUpdate';
 export * from './reportStatusUpdateStatus';
 export * from './statsSummary';
 export * from './volunteer';
+export * from './volunteerInput';
+export * from './volunteerInputType';
 export * from './volunteerType';

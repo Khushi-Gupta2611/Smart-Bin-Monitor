@@ -254,6 +254,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Volunteer"
+    post:
+      operationId: createVolunteer
+      tags: [volunteers]
+      summary: Register as a volunteer or NGO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "201":
+          description: Volunteer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Volunteer"
+        "400":
+          description: Invalid input
 
 components:
   schemas:
@@ -523,4 +542,23 @@ components:
         specialization:
           type: ["string", "null"]
         joinedAt:
+          type: string
+
+    VolunteerInput:
+      type: object
+      required:
+        - name
+        - type
+        - location
+      properties:
+        name:
+          type: string
+          minLength: 2
+        type:
+          type: string
+          enum: [individual, ngo]
+        location:
+          type: string
+          minLength: 3
+        specialization:
           type: string

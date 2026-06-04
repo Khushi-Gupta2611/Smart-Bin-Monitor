@@ -18,9 +18,11 @@ export default function Reports() {
     ...(severity !== "all" && { severity }),
   };
 
+  const activeParams = Object.keys(queryParams).length > 0 ? queryParams : undefined;
+
   const { data: reports, isLoading } = useListReports(
-    Object.keys(queryParams).length > 0 ? { params: queryParams } : undefined,
-    { query: { queryKey: getListReportsQueryKey(Object.keys(queryParams).length > 0 ? queryParams : undefined) } }
+    activeParams,
+    { query: { queryKey: getListReportsQueryKey(activeParams) } }
   );
 
   const getStatusColor = (s: string) => {

@@ -217,6 +217,23 @@ export interface Volunteer {
   joinedAt: string;
 }
 
+export type VolunteerInputType = typeof VolunteerInputType[keyof typeof VolunteerInputType];
+
+
+export const VolunteerInputType = {
+  individual: 'individual',
+  ngo: 'ngo',
+} as const;
+
+export interface VolunteerInput {
+  /** @minLength 2 */
+  name: string;
+  type: VolunteerInputType;
+  /** @minLength 3 */
+  location: string;
+  specialization?: string;
+}
+
 export type ListReportsParams = {
 status?: ListReportsStatus;
 category?: ListReportsCategory;

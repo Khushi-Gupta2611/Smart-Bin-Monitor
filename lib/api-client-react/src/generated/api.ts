@@ -31,7 +31,8 @@ import type {
   ReportInput,
   ReportStatusUpdate,
   StatsSummary,
-  Volunteer
+  Volunteer,
+  VolunteerInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1037,4 +1038,75 @@ export function useListVolunteers<TData = Awaited<ReturnType<typeof listVoluntee
 
 
 
+
+export const getCreateVolunteerUrl = () => {
+
+
+
+
+  return `/api/volunteers`
+}
+
+/**
+ * @summary Register as a volunteer or NGO
+ */
+export const createVolunteer = async (volunteerInput: VolunteerInput, options?: RequestInit): Promise<Volunteer> => {
+
+  return customFetch<Volunteer>(getCreateVolunteerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      volunteerInput,)
+  }
+);}
+
+
+
+
+export const getCreateVolunteerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVolunteer>>, TError,{data: BodyType<VolunteerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVolunteer>>, TError,{data: BodyType<VolunteerInput>}, TContext> => {
+
+const mutationKey = ['createVolunteer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVolunteer>>, {data: BodyType<VolunteerInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createVolunteer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVolunteerMutationResult = NonNullable<Awaited<ReturnType<typeof createVolunteer>>>
+    export type CreateVolunteerMutationBody = BodyType<VolunteerInput>
+    export type CreateVolunteerMutationError = ErrorType<void>
+
+    /**
+ * @summary Register as a volunteer or NGO
+ */
+export const useCreateVolunteer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVolunteer>>, TError,{data: BodyType<VolunteerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVolunteer>>,
+        TError,
+        {data: BodyType<VolunteerInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVolunteerMutationOptions(options));
+    }
 
