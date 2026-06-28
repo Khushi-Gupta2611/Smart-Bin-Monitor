@@ -20,10 +20,24 @@ export default function Reports() {
 
   const activeParams = Object.keys(queryParams).length > 0 ? queryParams : undefined;
 
-  const { data: reports, isLoading } = useListReports(
+  // const { data: reports, isLoading } = useListReports(
+  //   activeParams,
+  //   { query: { queryKey: getListReportsQueryKey(activeParams) } }
+  // );
+
+  const response = useListReports(
     activeParams,
     { query: { queryKey: getListReportsQueryKey(activeParams) } }
-  );
+);
+
+const reports = Array.isArray(response.data)
+    ? response.data
+    : [];
+
+const isLoading = response.isLoading;
+
+
+
 
   const getStatusColor = (s: string) => {
     switch (s) {

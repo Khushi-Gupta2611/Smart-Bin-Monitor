@@ -11,9 +11,28 @@ export default function Home() {
     query: { queryKey: getGetStatsSummaryQueryKey() }
   });
 
-  const { data: recentReports, isLoading: isLoadingReports } = useListRecentReports({
+  // const { data: recentReports, isLoading: isLoadingReports } = useListRecentReports({
+  //   query: { queryKey: getListRecentReportsQueryKey() }
+  // });
+
+  const response = useListRecentReports({
     query: { queryKey: getListRecentReportsQueryKey() }
-  });
+});
+
+console.log("DATA =", response.data);
+console.log("TYPE =", typeof response.data);
+console.log("IS ARRAY =", Array.isArray(response.data));
+
+//const recentReports = response.data;
+//const isLoadingReports = response.isLoading;
+
+const recentReports = Array.isArray(response.data)
+    ? response.data
+    : [];
+
+const isLoadingReports = response.isLoading;
+
+
 
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 max-w-7xl mx-auto">

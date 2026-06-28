@@ -65,7 +65,7 @@ export default function Donate() {
   }
 
   const getTypeIcon = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'money': return <DollarSign className="w-5 h-5 text-green-600" />;
       case 'materials': return <Package className="w-5 h-5 text-amber-600" />;
       case 'sponsorship': return <Briefcase className="w-5 h-5 text-blue-600" />;
@@ -155,10 +155,10 @@ export default function Donate() {
                     <FormItem>
                       <FormLabel>Message (Optional)</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Keep up the great work..." 
-                          className="bg-background resize-none" 
-                          {...field} 
+                        <Textarea
+                          placeholder="Keep up the great work..."
+                          className="bg-background resize-none"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -166,9 +166,9 @@ export default function Donate() {
                   )}
                 />
 
-                <Button 
-                  type="submit" 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  size="lg"
                   className="w-full h-12 text-lg shadow-md hover:shadow-lg transition-all"
                   disabled={createDonation.isPending}
                 >
@@ -189,7 +189,7 @@ export default function Donate() {
           <div className="flex justify-between items-end">
             <h2 className="text-2xl font-bold font-display text-foreground">Recent Supporters</h2>
           </div>
-          
+
           <div className="space-y-4">
             {isLoading ? (
               Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)
@@ -223,18 +223,53 @@ export default function Donate() {
               </div>
             )}
           </div>
-          
+
           <Card className="bg-secondary/10 border-secondary/20 shadow-none">
             <CardContent className="p-6 text-center">
               <h3 className="font-bold text-secondary-foreground mb-2">Corporate Sponsor?</h3>
               <p className="text-sm text-secondary-foreground/80 mb-4">Partner with us for city-wide cleanup initiatives and receive tax benefits.</p>
-              <Button variant="outline" className="bg-transparent border-secondary text-secondary hover:bg-secondary/20">
-                Contact Partnership Team <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+              <Button
+                variant="outline"
+                className="bg-transparent border-secondary text-secondary hover:bg-secondary/20"
+                onClick={() => {
+                  const email = "gupta.khushi02262811@gmail.com";
+
+                  const subject = encodeURIComponent(
+                    "Corporate Sponsorship Inquiry"
+                  );
+
+                  const body = encodeURIComponent(
+                    `Hello EcoGuard Team,
+
+                    We are interested in partnering with EcoGuard for city-wide cleanup initiatives.
+
+                    Company Name:
+
+                    Representative Name:
+
+                    Contact Number:
+
+                    Expected Contribution:
+
+                    Message:
+
+
+                    Regards`
+                  );
+
+                  window.open(
+                    `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`,
+                    "_blank"
+                  );
+                }}
+              >
+              Contact Partnership Team
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
+    </div >
   );
 }

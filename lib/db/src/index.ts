@@ -1,3 +1,13 @@
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({
+  path: path.resolve(process.cwd(), "../../.env"),
+});
+
+console.log("Loaded DATABASE_URL =", process.env.DATABASE_URL);
+
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
