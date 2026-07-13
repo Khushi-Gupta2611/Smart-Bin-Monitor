@@ -116,7 +116,13 @@ const isLoadingReports = response.isLoading;
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold font-display text-foreground">{stats.avgResolutionHours}h</div>
+                  <div className="text-3xl font-bold font-display text-foreground">
+                    {stats.avgResolutionHours < 1
+                      ? `${Math.round(stats.avgResolutionHours * 60)} min`
+                      : stats.avgResolutionHours < 24
+                      ? `${stats.avgResolutionHours.toFixed(1)} hrs`
+                      : `${(stats.avgResolutionHours / 24).toFixed(1)} days`}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">From report to clean</p>
                 </CardContent>
               </Card>

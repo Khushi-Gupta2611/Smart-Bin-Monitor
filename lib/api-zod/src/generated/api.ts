@@ -65,7 +65,6 @@ export const CreateReportBody = zod.object({
   "latitude": zod.number().optional(),
   "longitude": zod.number().optional(),
   "imageUrl": zod.string().optional(),
-  "reporterName": zod.string().min(1)
 })
 
 
@@ -112,6 +111,7 @@ export const GetReportResponse = zod.object({
   "longitude": zod.number().nullish(),
   "imageUrl": zod.string().nullish(),
   "completionImageUrl": zod.string().nullish(),
+  "reporterId": zod.number(),
   "reporterName": zod.string(),
   "assignedTo": zod.string().nullish(),
   "ecoPointsAwarded": zod.number(),

@@ -1,17 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
-
-
-
-
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
-console.log("PORT =", process.env.PORT); 
-
-
-
-
-
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

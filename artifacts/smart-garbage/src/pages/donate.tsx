@@ -12,6 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+
 const formSchema = z.object({
   donorName: z.string().min(2, "Name is required"),
   type: z.enum(["money", "materials", "sponsorship"]),
@@ -24,6 +26,18 @@ type FormValues = z.infer<typeof formSchema>;
 export default function Donate() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "https://checkout.razorpay.com/v1/checkout.js";
+  script.async = true;
+
+  document.body.appendChild(script);
+
+  return () => {
+    document.body.removeChild(script);
+  };
+  }, []);
 
   const { data: donations, isLoading } = useListDonations({
     query: { queryKey: getListDonationsQueryKey() }
@@ -41,28 +55,90 @@ export default function Donate() {
     },
   });
 
-  function onSubmit(values: FormValues) {
-    createDonation.mutate(
-      { data: values },
-      {
-        onSuccess: () => {
+  async function onSubmit(values: FormValues) {
+  try {
+    // 1. Create Razorpay order
+    const response = await fetch("http://localhost:3001/api/donations/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: values.amount,
+      }),
+    });
+
+    const order = await response.json();
+
+    const options = {
+      key: order.key,
+      amount: order.amount,
+      currency: order.currency,
+      name: "EcoGuard",
+      description: "Donation",
+
+      order_id: order.orderId,
+
+      handler: async (payment: any) => {
+        // 2. Verify payment
+        const verifyResponse = await fetch("http://localhost:3001/api/donations/verify-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payment),
+        });
+
+        const verify = await verifyResponse.json();
+
+        if (!verify.success) {
           toast({
-            title: "Thank you for your donation!",
-            description: "Your support helps keep our city clean.",
-          });
-          form.reset();
-          queryClient.invalidateQueries({ queryKey: getListDonationsQueryKey() });
-        },
-        onError: () => {
-          toast({
-            title: "Submission failed",
-            description: "Please try again later.",
+            title: "Payment Verification Failed",
+            description: "Please contact support.",
             variant: "destructive",
           });
-        },
-      }
-    );
+
+          return;
+        }
+
+        // 3. Save donation
+        createDonation.mutate(
+          { data: values },
+          {
+            onSuccess: () => {
+              toast({
+                title: "Payment Successful 🎉",
+                description: "Your donation has been received successfully. Thank you for supporting EcoGuard!",
+              });
+
+              form.reset();
+
+              queryClient.invalidateQueries({
+                queryKey: getListDonationsQueryKey(),
+              });
+            },
+          }
+        );
+      },
+
+      theme: {
+        color: "#22c55e",
+      },
+    };
+
+    const razorpay = new (window as any).Razorpay(options);
+
+    razorpay.open();
+  } catch (err) {
+    console.error(err);
+
+    toast({
+      title: "Something went wrong",
+      description: "Unable to start payment.",
+      variant: "destructive",
+    });
   }
+}
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -138,7 +214,7 @@ export default function Donate() {
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Value ($)</FormLabel>
+                        <FormLabel>Amount (₹)</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} className="bg-background font-mono text-lg" />
                         </FormControl>
@@ -204,7 +280,7 @@ export default function Donate() {
                       <div className="flex justify-between items-start mb-1">
                         <h4 className="font-bold text-foreground truncate">{donation.donorName}</h4>
                         <span className="font-bold font-mono text-primary bg-primary/10 px-2 py-0.5 rounded text-sm shrink-0">
-                          ${donation.amount.toLocaleString()}
+                          ₹{donation.amount.toLocaleString()}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{donation.type}</p>

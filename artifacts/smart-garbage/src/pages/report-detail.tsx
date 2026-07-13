@@ -3,10 +3,13 @@ import { useGetReport, getGetReportQueryKey, useUpdateReportStatus } from "@work
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, Leaf, AlertTriangle, User, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { MapPin, Clock, Leaf, AlertTriangle, User, ArrowLeft, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReportStatusUpdateStatus } from "@workspace/api-client-react";
@@ -16,6 +19,8 @@ export default function ReportDetail() {
   const reportId = parseInt(id, 10);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   const { data: report, isLoading, isError } = useGetReport(reportId, {
     query: { enabled: !!reportId, queryKey: getGetReportQueryKey(reportId) }
@@ -23,6 +28,7 @@ export default function ReportDetail() {
 
   const updateStatus = useUpdateReportStatus();
   const [newStatus, setNewStatus] = useState<ReportStatusUpdateStatus | "">("");
+  const [completionImageUrl, setCompletionImageUrl] = useState("");
 
   const handleStatusUpdate = () => {
     if (!newStatus) return;
@@ -30,7 +36,13 @@ export default function ReportDetail() {
     updateStatus.mutate(
       { 
         id: reportId, 
-        data: { status: newStatus as ReportStatusUpdateStatus } 
+        data: {
+          status: newStatus as ReportStatusUpdateStatus,
+          completionImageUrl:
+            newStatus === "completed"
+              ? completionImageUrl
+              : undefined,
+        }
       },
       {
         onSuccess: (updatedData) => {
@@ -52,9 +64,50 @@ export default function ReportDetail() {
     );
   };
 
+  async function handleDelete() {
+  if (!confirm("Are you sure you want to delete this report?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:3001/api/reports/${reportId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast({
+        title: "Error",
+        description: data.error,
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    toast({
+      title: "Deleted",
+      description: "Report deleted successfully.",
+    });
+
+    navigate("/reports");
+  } catch {
+    toast({
+      title: "Error",
+      description: "Could not delete report.",
+      variant: "destructive",
+    });
+  }
+}
+
   if (isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-8 max-w-5xl mx-auto space-y-6">
         <Skeleton className="h-10 w-32" />
         <Skeleton className="h-96 w-full rounded-2xl" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,10 +176,50 @@ export default function ReportDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
+          {/* Before Cleaning */}
           {report.imageUrl && (
-            <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-md bg-muted border border-border">
-              <img src={report.imageUrl} alt={report.title} className="w-full h-full object-cover" />
-            </div>
+            <Card className="shadow-sm border-border">
+              <CardHeader>
+                <CardTitle>Before Cleaning</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                <div className="w-full h-[400px] rounded-xl overflow-hidden">
+                  <img
+                    src={report.imageUrl || "/placeholder.png"}
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.png";
+                    }}
+                    alt="Before Cleaning"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* After Cleaning */}
+          {report.completionImageUrl && (
+            <Card className="shadow-sm border-green-200">
+              <CardHeader>
+                <CardTitle className="text-green-700">
+                  After Cleaning ✅
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                <div className="w-full h-[400px] rounded-xl overflow-hidden">
+                  <img
+                    src={report.completionImageUrl || "/placeholder.png"}
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.png";
+                    }}
+                    alt="After Cleaning"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <Card className="shadow-sm border-border bg-card">
@@ -213,8 +306,22 @@ export default function ReportDetail() {
                     <Leaf className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-foreground">Eco-Points Awarded</p>
-                    <p className="text-2xl font-bold font-display text-secondary">{report.ecoPointsAwarded}</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {report.status === "completed"
+                      ? "Eco Points Earned"
+                      : "Potential Eco Points"}
+                  </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold font-display text-secondary">
+                        {report.ecoPointsAwarded}
+                      </p>
+
+                      {report.status === "completed" && (
+                        <span className="text-green-600 font-semibold">
+                          ✅ Earned
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -222,38 +329,86 @@ export default function ReportDetail() {
           </Card>
 
           {/* Authority Actions */}
-          <Card className="shadow-md border-primary/20 bg-card overflow-hidden">
-            <div className="bg-primary/5 px-6 py-4 border-b border-primary/10">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-primary" />
-                Staff Actions
-              </CardTitle>
-              <CardDescription className="mt-1">Update report status (Admin/Staff only)</CardDescription>
-            </div>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <Select value={newStatus} onValueChange={(val: any) => setNewStatus(val)}>
-                  <SelectTrigger className="w-full bg-background border-input">
-                    <SelectValue placeholder="Update Status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="under_work">Under Work</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button 
-                  className="w-full" 
-                  disabled={!newStatus || newStatus === report.status || updateStatus.isPending}
-                  onClick={handleStatusUpdate}
-                >
-                  {updateStatus.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Save Changes
-                </Button>
+          {user?.role !== "citizen" && (
+            <Card className="shadow-md border-primary/20 bg-card overflow-hidden">
+              <div className="bg-primary/5 px-6 py-4 border-b border-primary/10">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-primary" />
+                  Staff Actions
+                </CardTitle>
+
+                <CardDescription className="mt-1">
+                  Update report status (Admin/Staff only)
+                </CardDescription>
               </div>
-            </CardContent>
-          </Card>
+
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+
+                  <Select
+                    value={newStatus}
+                    onValueChange={(val: any) => setNewStatus(val)}
+                  >
+                    <SelectTrigger className="w-full bg-background border-input">
+                      <SelectValue placeholder="Update Status..." />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="under_work">Under Work</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Show only when Completed is selected */}
+                  {newStatus === "completed" && (
+                    <Input
+                      placeholder="Paste completion image URL"
+                      value={completionImageUrl}
+                      onChange={(e) =>
+                        setCompletionImageUrl(e.target.value)
+                      }
+                    />
+                  )}
+
+                  <Button
+                    className="w-full"
+                    disabled={
+                      !newStatus ||
+                      newStatus === report.status ||
+                      updateStatus.isPending
+                    }
+                    onClick={handleStatusUpdate}
+                  >
+                    {updateStatus.isPending && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+
+                    Save Changes
+                  </Button>
+
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {user?.role === "citizen" &&
+          report.reporterId === user.id &&
+          report.status === "pending" && (
+            <Card className="shadow-md border-red-200 bg-red-50/40 dark:bg-red-950/20">
+              <CardContent className="p-6">
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Report
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
