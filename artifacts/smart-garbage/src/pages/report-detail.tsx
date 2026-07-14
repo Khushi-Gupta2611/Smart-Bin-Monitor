@@ -70,8 +70,7 @@ export default function ReportDetail() {
   }
 
   try {
-    const response = await fetch(
-      `http://localhost:3001/api/reports/${reportId}`,
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/${reportId}`, 
       {
         method: "DELETE",
         credentials: "include",

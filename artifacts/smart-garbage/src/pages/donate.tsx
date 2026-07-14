@@ -58,7 +58,7 @@ export default function Donate() {
   async function onSubmit(values: FormValues) {
   try {
     // 1. Create Razorpay order
-    const response = await fetch("http://localhost:3001/api/donations/create-order", {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/donations/create-order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,7 +81,7 @@ export default function Donate() {
 
       handler: async (payment: any) => {
         // 2. Verify payment
-        const verifyResponse = await fetch("http://localhost:3001/api/donations/verify-payment", {
+        const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/donations/verify-payment`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
