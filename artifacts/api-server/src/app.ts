@@ -7,6 +7,8 @@ import session from "express-session";
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
@@ -39,10 +41,12 @@ app.use(
     secret: "ecoguard-secret-key",
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-      secure: false,
+      secure: true,
+      sameSite: "none",
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      maxAge: 1000 * 60 * 60 * 24,
     },
   }),
 );
